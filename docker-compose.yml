@@ -248,3 +248,32 @@ services:
       - /home/pcarcade/.config/plex:/config
       - /mnt/merged/media:/media
     restart: unless-stopped
+
+  ombi:
+    image: lscr.io/linuxserver/ombi
+    container_name: ombi
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - BASE_URL=/ombi #optional
+    volumes:
+      - /home/pcarcade/.config/ombi:/config
+    ports:
+      - 3579:3579
+    restart: unless-stopped
+
+  lidarr:
+    image: lscr.io/linuxserver/lidarr
+    container_name: lidarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - /home/pcarcade/.config/lidarr:/config
+      - /mnt/merged/media:/media
+#     - /path/to/downloads:/downloads #optional
+    ports:
+      - 8686:8686
+    restart: unless-stopped
