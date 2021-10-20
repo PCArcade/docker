@@ -1,4 +1,16 @@
 version: "2.3" 
+
+networks:
+  vlan:
+    name: vlan
+    driver: macvlan
+    driver_opts:
+      parent: enp5s0 #your ethernet interface
+    enable_ipv6: false
+    ipam:
+      config:
+        - subnet: 192.168.0.0/24 # I use the same subnet as my LAN router.
+
 services:
 
   asf:
@@ -9,7 +21,7 @@ services:
       - PGID=1000
       - TZ=Europe/London
     volumes:
-      - /home/pcarcade/.config/asf:/app/config
+      - ${CONF}/asf:/app/config
     restart: unless-stopped
 
   ddclient:
@@ -20,7 +32,7 @@ services:
       - PGID=1000
       - TZ=Europe/London
     volumes:
-      - /home/pcarcade/.config/ddclient:/etc/ddclient
+      - ${CONF}/ddclient:/etc/ddclient
     restart: unless-stopped
 
   dockerproxy:
@@ -62,27 +74,27 @@ services:
       - MYSQL_USER=${SQL_USER}
       - MYSQL_PASSWORD=${SQL_PASS}
     volumes:
-      - /home/pcarcade/.config/mariadb:/config
+      - ${CONF}/mariadb:/config
     ports:
       - 3306:3306
     restart: unless-stopped
 
-#  openvpn-as:
-#    image: ghcr.io/linuxserver/openvpn-as
-#    container_name: openvpn-as
-#    cap_add:
-#      - NET_ADMIN
-#    environment:
-#      - PUID=1000
-#      - PGID=1000
-#      - TZ=Europe/London
-#    volumes:
-#      - /home/pcarcade/.config/openvpn:/config
-#    ports:
-#      - 943:943
-#      - 9443:9443
-#      - 1194:1194/udp
-#    restart: never
+  openvpn-as:
+    image: ghcr.io/linuxserver/openvpn-as
+    container_name: openvpn-as
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - ${CONF}/openvpn:/config
+    ports:
+      - 943:943
+      - 9443:9443
+      - 1194:1194/udp
+    restart: unless-stopped
 
   heimdall:
     image: ghcr.io/linuxserver/heimdall
@@ -92,7 +104,7 @@ services:
       - PGID=1000
       - TZ=Europe/London
     volumes:
-      - /home/pcarcade/.config/heimdall:/config
+      - ${CONF}/heimdall:/config
     restart: unless-stopped
 
   nzbget:
@@ -104,7 +116,7 @@ services:
       - TZ=Europe/London
       - UMASK_SET=022
     volumes:
-      - /home/pcarcade/.config/nzbget:/config
+      - ${CONF}/nzbget:/config
       - /mnt/merged/media/usenet:/media/usenet
       - /mnt/ssd001/p2p:/mnt/ssd001/p2p
       - /mnt/merged/Downloads:/watched
@@ -122,7 +134,7 @@ services:
       - TZ=Europe/London
       - UMASK_SET=022 #optional
     volumes:
-      - /home/pcarcade/.config/sonarr:/config
+      - ${CONF}/sonarr:/config
       - /mnt/merged/media:/media
     ports:
       - 8989:8989
@@ -137,7 +149,7 @@ services:
       - TZ=Europe/London
       - UMASK_SET=022 #optional
     volumes:
-      - /home/pcarcade/.config/radarr:/config
+      - ${CONF}/radarr:/config
       - /mnt/merged/media:/media
     ports:
       - 7878:7878
@@ -152,7 +164,7 @@ services:
       - TZ=Europe/London
       - UMASK_SET=022
     volumes:
-      - /home/pcarcade/.config/jackett:/config
+      - ${CONF}/jackett:/config
     ports:
       - 9117:9117
     restart: unless-stopped
@@ -169,10 +181,10 @@ services:
       - URL=${URL}
       - SUBDOMAINS=wildcard
       - VALIDATION=dns
-      - DNSPLUGIN=cloudflare
+      - DNSPLUGIN=${DNS}
       - MAXMINDDB_LICENSE_KEY=${MAXMIND}
     volumes:
-      - /home/pcarcade/.config/swag:/config
+      - ${CONF}/swag:/config
     ports:
       - 443:443
       - 80:80 #optional
@@ -183,7 +195,7 @@ services:
     container_name: deemix
     volumes:
       - /mnt/merged/media/library:/downloads
-      - /home/pcarcade/.config/deemix:/config
+      - ${CONF}/deemix:/config
     environment:
       - PUID=1000
       - PGID=1000
@@ -205,7 +217,7 @@ services:
       - TZ=Europe/London
       - DELUGE_LOGLEVEL=error #optional
     volumes:
-      - /home/pcarcade/.config/deluge:/config
+      - ${CONF}/deluge:/config
       - /mnt/merged/media/torrents:/media/torrents
       - /mnt/merged/Storage/Games/Switch/library:/Switch
       - /mnt/ssd001/p2p:/mnt/ssd001/p2p
@@ -219,7 +231,7 @@ services:
       - PGID=1000
       - TZ=Europe/London
     volumes:
-      - /home/pcarcade/.config/ddclient:/config
+      - ${CONF}/ddclient:/config
     restart: unless-stopped
 
   flaresolverr:
@@ -245,7 +257,7 @@ services:
       - PLEX_CLAIM=${PLEX_CLAIM}
       - NVIDIA_VISIBLE_DEVICES=all
     volumes:
-      - /home/pcarcade/.config/plex:/config
+      - ${CONF}/plex:/config
       - /mnt/merged/media:/media
     restart: unless-stopped
 
@@ -258,7 +270,7 @@ services:
       - TZ=Europe/London
       - BASE_URL=/ombi #optional
     volumes:
-      - /home/pcarcade/.config/ombi:/config
+      - ${CONF}/ombi:/config
     ports:
       - 3579:3579
     restart: unless-stopped
@@ -271,9 +283,42 @@ services:
       - PGID=1000
       - TZ=Europe/London
     volumes:
-      - /home/pcarcade/.config/lidarr:/config
+      - ${CONF}/lidarr:/config
       - /mnt/merged/media:/media
 #     - /path/to/downloads:/downloads #optional
     ports:
       - 8686:8686
+    restart: unless-stopped
+
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+#      - "67:67/udp" #disabled to allow unbound to do dns lookups
+      - "80:80/tcp"
+    environment:
+      TZ: 'America/Chicago'
+      WEBPASSWORD: ${PIPASS}
+    volumes:
+      - ${CONF}/pihole/etc-pihole/:/etc/pihole/'
+      - ${CONF}/pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/'
+    networks:
+      vlan:
+        ipv4_address: 192.168.0.123
+    cap_add:
+      - NET_ADMIN # needed for DHCP 
+    restart: unless-stopped
+
+  unbound:
+    container_name: unbound
+    image: mvance/unbound:latest
+    hostname: syn-unbound
+    ports:
+      - 53/tcp
+      - 53/udp
+    networks:
+      vlan:
+        ipv4_address: 192.168.0.6
     restart: unless-stopped
