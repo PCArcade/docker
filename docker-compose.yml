@@ -1,18 +1,19 @@
 version: "2.3" 
 
+#networks - needed so that heimdall and pi-hole can coexist on the same network the virtual lan is only used for pi-hole currently
+
 networks:
   vlan:
     name: vlan
     driver: macvlan
     driver_opts:
-      parent: enp5s0 #your ethernet interface
+      parent: enp5s0 #replace with your ethernet interface
     enable_ipv6: false
     ipam:
       config:
-        - subnet: 192.168.0.0/24 # I use the same subnet as my LAN router.
+        - subnet: 192.168.0.0/24 #if your subnet is different, change the values here
 
 services:
-
   asf:
     image: ghcr.io/justarchinet/archisteamfarm
     container_name: asf
