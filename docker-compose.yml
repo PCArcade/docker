@@ -245,7 +245,7 @@ services:
       - PGID=1000
       - VERSION=docker
       - PLEX_CLAIM=${PLEX_CLAIM}
-      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_VISIBLE_DEVICES=GPU-d7182770-78ea-951e-1573-69ac9994a906
     volumes:
       - ${CONF}/plex:/config
       - /mnt/merged/media:/media
@@ -296,7 +296,7 @@ services:
       - ${CONF}/pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/'
     networks:
       vlan:
-        ipv4_address: 192.168.0.123
+        ipv4_address: 192.168.0.2
     cap_add:
       - NET_ADMIN # needed for DHCP 
     restart: unless-stopped
@@ -311,4 +311,20 @@ services:
     networks:
       vlan:
         ipv4_address: 192.168.0.6
+    restart: unless-stopped
+
+  lazylibrarian:
+    image: lscr.io/linuxserver/lazylibrarian
+    container_name: lazylibrarian
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - DOCKER_MODS=linuxserver/calibre-web:calibre|linuxserver/mods:lazylibrarian-ffmpeg #optional
+    volumes:
+      - ${CONF}/lazylibrarian:/config
+      - /mnt/merged/Downloads:/downloads
+      - /mnt/merged/Storage/Books:/books #optional
+    ports:
+      - 5299:5299
     restart: unless-stopped
