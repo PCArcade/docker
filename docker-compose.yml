@@ -245,7 +245,7 @@ services:
       - PGID=1000
       - VERSION=docker
       - PLEX_CLAIM=${PLEX_CLAIM}
-      - NVIDIA_VISIBLE_DEVICES=GPU-d7182770-78ea-951e-1573-69ac9994a906
+      - NVIDIA_VISIBLE_DEVICES={$GPU}
     volumes:
       - ${CONF}/plex:/config
       - /mnt/merged/media:/media
@@ -338,7 +338,7 @@ services:
       - PGID=1000
       - TZ=Europe/London
       - JELLYFIN_PublishedServerUrl=192.168.0.5 #optional
-      - NVIDIA_VISIBLE_DEVICES=GPU-d7182770-78ea-951e-1573-69ac9994a906
+      - NVIDIA_VISIBLE_DEVICES={$GPU}
     volumes:
       - ${CONF}/jellyfin:/config
       - /mnt/merged/Storage/.temp:/data/movies
