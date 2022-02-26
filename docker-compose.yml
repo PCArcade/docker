@@ -20,7 +20,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/London
+      - TZ=$TZ
     volumes:
       - ${CONF}/asf:/app/config
     restart: unless-stopped
@@ -60,7 +60,7 @@ services:
       - PUID=1000
       - PGID=1000
       - MYSQL_ROOT_PASSWORD=${SQL_ROOT}
-      - TZ=Europe/London
+      - TZ=$TZ
       - MYSQL_USER=${SQL_USER}
       - MYSQL_PASSWORD=${SQL_PASS}
     volumes:
@@ -77,7 +77,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/London
+      - TZ=$TZ
     volumes:
       - ${CONF}/openvpn:/config
     ports:
@@ -92,7 +92,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/London
+      - TZ=$TZ
     volumes:
       - ${CONF}/heimdall:/config
     restart: unless-stopped
@@ -103,7 +103,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/London
+      - TZ=$TZ
       - UMASK_SET=022
     volumes:
       - ${CONF}/nzbget:/config
@@ -121,7 +121,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/London
+      - TZ=$TZ
       - UMASK_SET=022 #optional
     volumes:
       - ${CONF}/sonarr:/config
@@ -136,7 +136,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/London
+      - TZ=$TZ
       - UMASK_SET=022 #optional
     volumes:
       - ${CONF}/radarr:/config
@@ -151,7 +151,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/London
+      - TZ=$TZ
       - UMASK_SET=022
     volumes:
       - ${CONF}/jackett:/config
@@ -167,7 +167,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/London
+      - TZ=$TZ
       - URL=${URL}
       - SUBDOMAINS=wildcard
       - VALIDATION=dns
@@ -198,19 +198,24 @@ services:
     restart: unless-stopped
 
   deluge:
-    image: ghcr.io/linuxserver/deluge
+#    image: ghcr.io/linuxserver/deluge:2.0.3-2201906121747ubuntu18.04.1-ls128
+    image: ghcr.io/linuxserver/deluge:latest
     container_name: deluge
     network_mode: host
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/London
+      - TZ=$TZ
       - DELUGE_LOGLEVEL=error #optional
     volumes:
       - ${CONF}/deluge:/config
       - /mnt/merged/media/torrents:/media/torrents
       - /mnt/merged/Storage/Games/Switch/library:/Switch
       - /mnt/ssd001/p2p:/mnt/ssd001/p2p
+    ports:
+      - 8112:8112
+      - 6881:6881
+      - 6881:6881/udp
     restart: unless-stopped
 
   ddclient:
@@ -219,7 +224,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/London
+      - TZ=$TZ
     volumes:
       - ${CONF}/ddclient:/config
     restart: unless-stopped
@@ -245,7 +250,7 @@ services:
       - PGID=1000
       - VERSION=docker
       - PLEX_CLAIM=${PLEX_CLAIM}
-      - NVIDIA_VISIBLE_DEVICES={$GPU}
+      - NVIDIA_VISIBLE_DEVICES=all #{$GPU}
     volumes:
       - ${CONF}/plex:/config
       - /mnt/merged/media:/media
@@ -257,7 +262,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/London
+      - TZ=$TZ
       - BASE_URL=/ombi #optional
     volumes:
       - ${CONF}/ombi:/config
@@ -271,7 +276,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/London
+      - TZ=$TZ
     volumes:
       - ${CONF}/lidarr:/config
       - /mnt/merged/media:/media
@@ -284,16 +289,16 @@ services:
     container_name: pihole
     image: pihole/pihole:latest
     ports:
-      - "53:53/tcp"
-      - "53:53/udp"
+      - 53:53/tcp
+      - 53:53/udp
 #      - "67:67/udp" #disabled to allow unbound to do dns lookups
-      - "80:80/tcp"
+      - 80:80/tcp
     environment:
-      TZ: 'America/Chicago'
+      TZ: $TZ
       WEBPASSWORD: ${PIPASS}
     volumes:
-      - ${CONF}/pihole/etc-pihole/:/etc/pihole/'
-      - ${CONF}/pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/'
+      - ${CONF}/pihole/etc-pihole:/etc/pihole
+      - ${CONF}/pihole/etc-dnsmasq.d:/etc/dnsmasq.d
     networks:
       vlan:
         ipv4_address: 192.168.0.2
@@ -319,7 +324,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/London
+      - TZ=$TZ
       - DOCKER_MODS=linuxserver/calibre-web:calibre|linuxserver/mods:lazylibrarian-ffmpeg #optional
     volumes:
       - ${CONF}/lazylibrarian:/config
@@ -336,9 +341,9 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/London
+      - TZ=$TZ
       - JELLYFIN_PublishedServerUrl=192.168.0.5 #optional
-      - NVIDIA_VISIBLE_DEVICES={$GPU}
+      - NVIDIA_VISIBLE_DEVICES=all #{$GPU}
     volumes:
       - ${CONF}/jellyfin:/config
       - /mnt/merged/Storage/.temp:/data/movies
@@ -348,3 +353,4 @@ services:
       - 7359:7359/udp #optional
 #      - 1900:1900/udp #optional
     restart: unless-stopped
+
