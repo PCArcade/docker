@@ -69,23 +69,6 @@ services:
       - 3306:3306
     restart: unless-stopped
 
-  openvpn-as:
-    image: ghcr.io/linuxserver/openvpn-as
-    container_name: openvpn-as
-    cap_add:
-      - NET_ADMIN
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=$TZ
-    volumes:
-      - ${CONF}/openvpn:/config
-    ports:
-      - 943:943
-      - 9443:9443
-      - 1194:1194/udp
-    restart: unless-stopped
-
   heimdall:
     image: ghcr.io/linuxserver/heimdall
     container_name: heimdall
@@ -198,7 +181,6 @@ services:
     restart: unless-stopped
 
   deluge:
-#    image: ghcr.io/linuxserver/deluge:2.0.3-2201906121747ubuntu18.04.1-ls128
     image: ghcr.io/linuxserver/deluge:latest
     container_name: deluge
     network_mode: host
@@ -285,39 +267,6 @@ services:
       - 8686:8686
     restart: unless-stopped
 
-  pihole:
-    container_name: pihole
-    image: pihole/pihole:latest
-    ports:
-      - 53:53/tcp
-      - 53:53/udp
-#      - "67:67/udp" #disabled to allow unbound to do dns lookups
-      - 80:80/tcp
-    environment:
-      TZ: $TZ
-      WEBPASSWORD: ${PIPASS}
-    volumes:
-      - ${CONF}/pihole/etc-pihole:/etc/pihole
-      - ${CONF}/pihole/etc-dnsmasq.d:/etc/dnsmasq.d
-    networks:
-      vlan:
-        ipv4_address: 192.168.0.2
-    cap_add:
-      - NET_ADMIN # needed for DHCP 
-    restart: unless-stopped
-
-  unbound:
-    container_name: unbound
-    image: mvance/unbound:latest
-    hostname: syn-unbound
-    ports:
-      - 53/tcp
-      - 53/udp
-    networks:
-      vlan:
-        ipv4_address: 192.168.0.6
-    restart: unless-stopped
-
   lazylibrarian:
     image: lscr.io/linuxserver/lazylibrarian
     container_name: lazylibrarian
@@ -352,5 +301,90 @@ services:
       - 8920:8920 #optional
       - 7359:7359/udp #optional
 #      - 1900:1900/udp #optional
+    restart: unless-stopped
+
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    ports:
+      - 53:53/tcp
+      - 53:53/udp
+      - "67:67/udp" #disabled to allow unbound to do dns lookups
+      - 80:80/tcp
+    environment:
+      TZ: $TZ
+      WEBPASSWORD: ${PIPASS}
+    volumes:
+      - ${CONF}/pihole/etc-pihole:/etc/pihole
+      - ${CONF}/pihole/etc-dnsmasq.d:/etc/dnsmasq.d
+    networks:
+      vlan:
+        ipv4_address: 192.168.0.2
+    cap_add:
+      - NET_ADMIN # needed for DHCP 
+    restart: unless-stopped
+
+  unbound:
+    container_name: unbound
+    image: mvance/unbound:latest
+    hostname: syn-unbound
+    ports:
+      - 53/tcp
+      - 53/udp
+    networks:
+      vlan:
+        ipv4_address: 192.168.0.6
+    restart: unless-stopped
+
+  audacity:
+    image: lscr.io/linuxserver/audacity
+    container_name: audacity
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - ${CONF}/audacity:/config
+      - /mnt/merged:/merged
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+
+  davos:
+    image: lscr.io/linuxserver/davos
+    container_name: davos
+    environment:
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ${CONF}/davos:/config
+      - /mnt/merged/Storage/Downloads:/download
+    ports:
+      - 8080:8080
+    restart: unless-stopped
+
+  wireguard:
+    image: lscr.io/linuxserver/wireguard
+    container_name: wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - SERVERURL=vpn.pcarcade.co.uk #optional
+      - SERVERPORT=51820 #optional
+      - PEERS=1 #optional
+      - PEERDNS=auto #optional
+      - INTERNAL_SUBNET=10.13.13.0 #optional
+      - ALLOWEDIPS=0.0.0.0/0 #optional
+    volumes:
+      - ${CONF}/wireguard:/config
+      - /lib/modules:/lib/modules
+    ports:
+      - 51820:51820/udp
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
     restart: unless-stopped
 
