@@ -113,30 +113,13 @@ services:
       - VALIDATION=dns
       - DNSPLUGIN=${DNS}
       - MAXMINDDB_LICENSE_KEY=${MAXMIND}
-      - DOCKER_MODS=linuxserver/mods:swag-dashboard|linuxserver/mods:swag-mod2
+      - DOCKER_MODS=linuxserver/mods:swag-auto-reload
     volumes:
       - ${CONF}/swag:/config
     ports:
       - 443:443
       - 80:80 #optional
-  #    - 81:81
-    restart: unless-stopped
-
-  deemix:
-    image: registry.gitlab.com/bockiii/deemix-docker
-    container_name: deemix
-    volumes:
-      - /mnt/merged/media/library:/downloads
-      - ${CONF}/deemix:/config
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - UMASK_SET=022
-      - ARL=${ARL}
-      - DEEZUI=false
-      - REVERSEPROXY=true
-    ports:
-      - 6595:6595
+      - 81:81
     restart: unless-stopped
 
   ddclient:
@@ -163,7 +146,7 @@ services:
 
   plex:
     runtime: nvidia
-    image: ghcr.io/linuxserver/plex:latest
+    image: lscr.io/linuxserver/plex:latest
     container_name: plex
     network_mode: host
     environment:
@@ -178,18 +161,18 @@ services:
     restart: unless-stopped
 
   ombi:
-    image: lscr.io/linuxserver/ombi
+    image: lscr.io/linuxserver/ombi:latest
     container_name: ombi
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=$TZ
+      - TZ=Europe/London
       - BASE_URL=/ombi #optional
     volumes:
       - ${CONF}/ombi:/config
     ports:
       - 3579:3579
-    restart: unless-stopped
+    restart: unless-stopped  
 
   jellyfin:
     runtime: nvidia
@@ -203,7 +186,7 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all #{$GPU}
     volumes:
       - ${CONF}/jellyfin:/config
-      - /mnt/merged/Storage/.temp:/data/movies
+      - /mnt/merged/Storage/:/data/movies
     ports:
       - 8096:8096
       - 8920:8920 #optional
@@ -217,7 +200,7 @@ services:
     ports:
       - 53:53/tcp
       - 53:53/udp
-      - "67:67/udp" #disabled to allow unbound to do dns lookups
+#      - "67:67/udp" #disabled to allow unbound to do dns lookups
       - 80:80/tcp
     environment:
       TZ: $TZ
@@ -258,43 +241,6 @@ services:
       - 8080:8080
     restart: unless-stopped
 
-  stash:
-    image: stashapp/stash:latest
-    container_name: stash
-    ## the container's port must be the same with the STASH_PORT in the environment section
-    ports:
-      - "9999:9999"
-    ## If you intend to use stash's DLNA functionality uncomment the below network mode and comment out the above ports section
-    # network_mode: host
-    logging:
-      driver: "json-file"
-      options:
-        max-file: "10"
-        max-size: "2m"
-    environment:
-      - STASH_STASH=/data/
-      - STASH_GENERATED=/generated/
-      - STASH_METADATA=/metadata/
-      - STASH_CACHE=/cache/
-      ## Adjust below to change default port (9999)
-      - STASH_PORT=9999
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      ## Adjust below paths (the left part) to your liking.
-      ## E.g. you can change ./config:/root/.stash to ./stash:/root/.stash
-      
-      ## Keep configs, scrapers, and plugins here.
-      - ${CONF}/stash:/root/.stash
-      ## Point this at your collection.
-      - /mnt:/data
-      ## This is where your stash's metadata lives
-      - ${CONF}/stash/metadata:/metadata
-      ## Any other cache content.
-      - ${CONF}/stash/cache:/cache
-      ## Where to store generated content (screenshots,previews,transcodes,sprites)
-      - ${CONF}/stash/generated:/generated
-    restart: unless-stopped
-
   nzbget:
     image: ghcr.io/linuxserver/nzbget
     container_name: nzbget
@@ -311,6 +257,23 @@ services:
     ports:
       - 6789:6789
       - 6791:6791
+    restart: unless-stopped
+
+  wetty:
+    image: wettyoss/wetty
+    container_name: wetty
+    working_dir: /usr/src/app
+    ports:
+      - '3000:3000'
+    environment:
+      SSHHOST: '192.168.0.5'
+      SSHPORT: 22
+      NODE_ENV: 'development'
+      BASE: '/'
+      SSLKEY: /config/key.pem  
+      SSLCERT: /config/cert.pem
+    volumes:
+      - ${CONF}/wetty:/config
     restart: unless-stopped
 
   wireguard:
@@ -332,27 +295,49 @@ services:
     volumes:
       - ${CONF}/wireguard:/config
       - /lib/modules:/lib/modules
-    ports:
-      - 51820:51820/udp
+#    ports:
+#      - 51820:51820/udp
     sysctls:
       - net.ipv4.conf.all.src_valid_mark=1
-#    network_mode: "service:gluetun"
+    network_mode: "service:gluetun"
+    restart: unless-stopped
+
+  deluge:
+    image: ghcr.io/linuxserver/deluge:latest
+    container_name: deluge
+#    network_mode: host
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=$TZ
+      - DELUGE_LOGLEVEL=error #optional
+    volumes:
+      - ${CONF}/deluge:/config
+      - /mnt/merged/media/torrents:/media/torrents
+      - /mnt/merged/Storage/Games/Switch/library:/Switch
+      - /mnt/ssd001/p2p:/mnt/ssd001/p2p
+    ports:
+      - 8112:8112
+      - 6881:6881
+      - 6881:6881/udp
     restart: unless-stopped
 
   gluetun:
     image: qmcgaw/gluetun
+    container_name: gluetun
     cap_add:
       - NET_ADMIN
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      - 8888:8888/tcp # HTTP proxy
-      - 8388:8388/tcp # Shadowsocks
-      - 8388:8388/udp # Shadowsocks
+#      - 8888:8888/tcp # HTTP proxy
+#      - 8388:8388/tcp # Shadowsocks
+#      - 8388:8388/udp # Shadowsocks
       - 9117:9117 #jackett
-      - 8112:8112 #deluge
-      - 6881:6881 #deluge
-      - 6881:6881/udp #deluge
+#      - 8112:8112 #deluge
+#      - 6881:6881 #deluge
+#      - 6881:6881/udp #deluge
+      - 51820:51820/udp #wireguard
     volumes:
       - ${CONF}/gluetun:/gluetun
     environment:
@@ -360,8 +345,10 @@ services:
       - OPENVPN_USER=${VPNUSER}
       - OPENVPN_PASSWORD=${VPNPASS}
       - SERVER_COUNTRIES=${VPNAREA}
+#      - SHADOWSOCKS=on
+#      - FIREWALL_OUTBOUND_SUBNETS=192.168.0.0/24
 
-#servfices below connect via gluetun vpn
+#services below connect via gluetun vpn
 
   jackett:
     image: ghcr.io/linuxserver/jackett
@@ -375,27 +362,5 @@ services:
       - ${CONF}/jackett:/config
 #    ports:
 #      - 9117:9117
-    network_mode: "service:gluetun"
-    restart: unless-stopped
-
-  deluge:
-    image: ghcr.io/linuxserver/deluge:latest
-#    image: ghcr.io/linuxserver/deluge:2.0.3-2201906121747ubuntu18.04.1-ls128
-    container_name: deluge
-    network_mode: host
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=$TZ
-      - DELUGE_LOGLEVEL=error #optional
-    volumes:
-      - ${CONF}/deluge:/config
-      - /mnt/merged/media/torrents:/media/torrents
-      - /mnt/merged/Storage/Games/Switch/library:/Switch
-      - /mnt/ssd001/p2p:/mnt/ssd001/p2p
-#    ports:
-#      - 8112:8112
-#      - 6881:6881
-#      - 6881:6881/udp
     network_mode: "service:gluetun"
     restart: unless-stopped
