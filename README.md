@@ -13,7 +13,6 @@ sonarr - TV Series management tool - https://nzbget.net/
 radarr - Movie management tool - https://radarr.video/  
 jackett - Index management tool - https://github.com/Jackett/Jackett  
 swag - Secure Web Application Gateway (nginx webserver and reverse proxy) - https://github.com/linuxserver/docker-swag  
-deemix - Deezer client - https://gitlab.com/Bockiii/deemix-docker  
 deluge - bittorrent client - https://www.deluge-torrent.org/  
 ddclient - updates dynamic dns - https://github.com/linuxserver/docker-ddclient/pkgs/container/ddclient  
 flaresolver - proxy server to bypass Cloudflare protection - https://github.com/FlareSolverr/FlareSolverr  
