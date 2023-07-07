@@ -1,6 +1,6 @@
 version: "2.3" 
 
-#networks - needed so that heimdall and pi-hole can coexist on the same network the virtual lan is only used for pi-hole currently
+# networks - needed so that heimdall and pi-hole can coexist on the same network the virtual lan is only used for pi-hole currently
 
 networks:
   vlan:
@@ -14,9 +14,22 @@ networks:
         - subnet: 192.168.0.0/24 #if your subnet is different, change the values here
 
 services:
+  ddclient:
+    image: lscr.io/linuxserver/ddclient:latest
+    container_name: ddclient
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - $CONF/ddclient:/config
+    restart: unless-stopped
+
   asf:
     image: ghcr.io/justarchinet/archisteamfarm
     container_name: asf
+    ports:
+      - 1242:1242
     environment:
       - PUID=1000
       - PGID=1000
@@ -93,8 +106,7 @@ services:
       - TZ=Europe/London
     volumes:
       - ${CONF}/bazarr:/config
-      - /mnt/merged/media/library/Movies:/movies #optional
-      - /mnt/merged/media/library/TV:/tv #optional
+      - /mnt/merged/media:/media
     ports:
       - 6767:6767
     restart: unless-stopped
@@ -187,6 +199,7 @@ services:
     volumes:
       - ${CONF}/jellyfin:/config
       - /mnt/merged/Storage/:/data/movies
+      - /mnt/merged/media:/media
     ports:
       - 8096:8096
       - 8920:8920 #optional
@@ -228,19 +241,6 @@ services:
         ipv4_address: 192.168.0.6
     restart: unless-stopped
 
-  davos:
-    image: lscr.io/linuxserver/davos
-    container_name: davos
-    environment:
-      - PUID=1000
-      - PGID=1000
-    volumes:
-      - ${CONF}/davos:/config
-      - /mnt/merged/Storage/Downloads:/download
-    ports:
-      - 8080:8080
-    restart: unless-stopped
-
   nzbget:
     image: ghcr.io/linuxserver/nzbget
     container_name: nzbget
@@ -253,27 +253,10 @@ services:
       - ${CONF}/nzbget:/config
       - /mnt/merged/media/usenet:/media/usenet
       - /mnt/ssd001/p2p:/mnt/ssd001/p2p
-      - /mnt/merged/Downloads:/watched
+      - /mnt/merged/media/usenet/.watch:/watched
     ports:
       - 6789:6789
       - 6791:6791
-    restart: unless-stopped
-
-  wetty:
-    image: wettyoss/wetty
-    container_name: wetty
-    working_dir: /usr/src/app
-    ports:
-      - '3000:3000'
-    environment:
-      SSHHOST: '192.168.0.5'
-      SSHPORT: 22
-      NODE_ENV: 'development'
-      BASE: '/'
-      SSLKEY: /config/key.pem  
-      SSLCERT: /config/cert.pem
-    volumes:
-      - ${CONF}/wetty:/config
     restart: unless-stopped
 
   wireguard:
@@ -314,7 +297,7 @@ services:
     volumes:
       - ${CONF}/deluge:/config
       - /mnt/merged/media/torrents:/media/torrents
-      - /mnt/merged/Storage/Games/Switch/library:/Switch
+      - /mnt/merged/Storage:/Storage
       - /mnt/ssd001/p2p:/mnt/ssd001/p2p
     ports:
       - 8112:8112
@@ -364,3 +347,36 @@ services:
 #      - 9117:9117
     network_mode: "service:gluetun"
     restart: unless-stopped
+
+# Deprecated / unused services
+#
+#  davos:
+#    image: lscr.io/linuxserver/davos
+#    container_name: davos
+#    environment:
+#      - PUID=1000
+#      - PGID=1000
+#    volumes:
+#      - ${CONF}/davos:/config
+#      - /mnt/merged/Storage/Downloads:/download
+#    ports:
+#      - 8080:8080
+#    restart: unless-stopped
+#
+#  wetty:
+#    image: wettyoss/wetty
+#    container_name: wetty
+#    working_dir: /usr/src/app
+#    ports:
+#      - '3000:3000'
+#    environment:
+#      SSHHOST: '192.168.0.5'
+#      SSHPORT: 22
+#      NODE_ENV: 'development'
+#      BASE: '/'
+#      SSLKEY: /config/key.pem  
+#      SSLCERT: /config/cert.pem
+#    volumes:
+#      - ${CONF}/wetty:/config
+#    restart: unless-stopped
+
