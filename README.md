@@ -22,6 +22,23 @@ lidarr - Music management tool - https://lidarr.audio/
 pihole - Network-wide Ad Blocking  - https://pi-hole.net/  
 unbound - recursive, caching DNS resolver - https://pi-hole.net/
 
+# add the following to the config directory for ASF to enable web-ui via IPC in file IPC.config
+
+{
+        "Kestrel": {
+                "Endpoints": {
+                        "HTTP": {
+                                "Url": "http://127.0.0.*:1242"
+                        }
+                },
+                "KnownNetworks": [
+                        "192.168.0.0/16"
+                        ],
+        }
+}
+
+assuming network is 192.168.0.xx if not change accordingly
+
 # instructions for updating pihole
 
 After docker-compose up -d:
