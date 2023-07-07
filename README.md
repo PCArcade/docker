@@ -77,7 +77,7 @@ https://www.github.developerdan.com/hosts/lists/dating-services-extended.txt
 https://www.github.developerdan.com/hosts/lists/hate-and-junk-extended.txt  
 https://www.github.developerdan.com/hosts/lists/tracking-aggressive-extended.txt  
 
-## Whitelist to enable achievements  
+## Whitelist to enable xbox achievements  
 attestation.xboxlive.comcert.mgt.xboxlive.com  
 ctldl.windowsupdate.comdef-vef.xboxlive.com  
 device.auth.xboxlive.comeds.xboxlive.com  
