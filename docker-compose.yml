@@ -11,7 +11,7 @@ networks:
     enable_ipv6: false
     ipam:
       config:
-        - subnet: 192.168.0.0/24 #if your subnet is different, change the values here
+        - subnet: 192.168.4.0/22 #if your subnet is different, change the values here
 
 services:
   ddclient:
@@ -41,7 +41,7 @@ services:
   netdata:
     image: netdata/netdata
     container_name: netdata
-    hostname: 192.168.0.5
+    hostname: 192.168.4.5
     ports:
       - 19999:19999
     cap_add:
@@ -170,6 +170,7 @@ services:
     volumes:
       - ${CONF}/plex:/config
       - /mnt/merged/media:/media
+      - /mnt/ssd001/temp-transcode:/transcode
     restart: unless-stopped
 
   ombi:
@@ -194,12 +195,12 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=$TZ
-      - JELLYFIN_PublishedServerUrl=192.168.0.5 #optional
+      - JELLYFIN_PublishedServerUrl=192.168.4.5 #optional
       - NVIDIA_VISIBLE_DEVICES=all #{$GPU}
     volumes:
       - ${CONF}/jellyfin:/config
       - /mnt/merged/Storage/:/data/movies
-      - /mnt/merged/media:/media
+#      - /mnt/merged/media:/media
     ports:
       - 8096:8096
       - 8920:8920 #optional
@@ -224,7 +225,7 @@ services:
       - ${CONF}/pihole/etc-dnsmasq.d:/etc/dnsmasq.d
     networks:
       vlan:
-        ipv4_address: 192.168.0.2
+        ipv4_address: 192.168.4.2
     cap_add:
       - NET_ADMIN # needed for DHCP 
     restart: unless-stopped
@@ -238,7 +239,7 @@ services:
       - 53/udp
     networks:
       vlan:
-        ipv4_address: 192.168.0.6
+        ipv4_address: 192.168.4.6
     restart: unless-stopped
 
   nzbget:
@@ -254,6 +255,7 @@ services:
       - /mnt/merged/media/usenet:/media/usenet
       - /mnt/ssd001/p2p:/mnt/ssd001/p2p
       - /mnt/merged/media/usenet/.watch:/watched
+      - /mnt/merged/Storage:/Storage
     ports:
       - 6789:6789
       - 6791:6791
@@ -285,26 +287,6 @@ services:
     network_mode: "service:gluetun"
     restart: unless-stopped
 
-  deluge:
-    image: ghcr.io/linuxserver/deluge:latest
-    container_name: deluge
-#    network_mode: host
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=$TZ
-      - DELUGE_LOGLEVEL=error #optional
-    volumes:
-      - ${CONF}/deluge:/config
-      - /mnt/merged/media/torrents:/media/torrents
-      - /mnt/merged/Storage:/Storage
-      - /mnt/ssd001/p2p:/mnt/ssd001/p2p
-    ports:
-      - 8112:8112
-      - 6881:6881
-      - 6881:6881/udp
-    restart: unless-stopped
-
   gluetun:
     image: qmcgaw/gluetun
     container_name: gluetun
@@ -316,9 +298,9 @@ services:
 #      - 8888:8888/tcp # HTTP proxy
 #      - 8388:8388/tcp # Shadowsocks
 #      - 8388:8388/udp # Shadowsocks
-      - 9117:9117 #jackett
-#      - 8112:8112 #deluge
-#      - 6881:6881 #deluge
+#      - 9117:9117 #jackett
+#      - 8112:8112 # deluge
+#      - 6881:6881 # deluge
 #      - 6881:6881/udp #deluge
       - 51820:51820/udp #wireguard
     volumes:
@@ -343,10 +325,45 @@ services:
       - UMASK_SET=022
     volumes:
       - ${CONF}/jackett:/config
-#    ports:
-#      - 9117:9117
-    network_mode: "service:gluetun"
+    ports:
+      - 9117:9117
+#    network_mode: "service:gluetun"
     restart: unless-stopped
+
+  deluge:
+    image: ghcr.io/linuxserver/deluge:latest
+    container_name: deluge
+#    network_mode: "service:gluetun"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=$TZ
+      - DELUGE_LOGLEVEL=error #optional
+    volumes:
+      - ${CONF}/deluge:/config
+      - /mnt/merged/media/torrents:/media/torrents
+      - /mnt/merged/Storage:/Storage
+      - /mnt/ssd001/p2p:/mnt/ssd001/p2p
+    ports:
+      - 8112:8112
+      - 6881:6881
+      - 6881:6881/udp
+    restart: unless-stopped
+
+# testing area
+
+  tautulli:
+    image: ghcr.io/tautulli/tautulli
+    container_name: tautulli
+    restart: unless-stopped
+    volumes:
+      - ${CONF}/tautulli:/config
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    ports:
+      - 8181:8181
 
 # Deprecated / unused services
 #
@@ -370,7 +387,7 @@ services:
 #    ports:
 #      - '3000:3000'
 #    environment:
-#      SSHHOST: '192.168.0.5'
+#      SSHHOST: '192.168.4.5'
 #      SSHPORT: 22
 #      NODE_ENV: 'development'
 #      BASE: '/'
