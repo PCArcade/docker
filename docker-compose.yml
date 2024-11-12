@@ -1,47 +1,12 @@
-version: "2.3" 
-
-# networks - needed so that heimdall and pi-hole can coexist on the same network the virtual lan is only used for pi-hole currently
-
-networks:
-  vlan:
-    name: vlan
-    driver: macvlan
-    driver_opts:
-      parent: enp5s0 #replace with your ethernet interface
-    enable_ipv6: false
-    ipam:
-      config:
-        - subnet: 192.168.4.0/22 #if your subnet is different, change the values here
+version: "2.4"
 
 services:
-  ddclient:
-    image: lscr.io/linuxserver/ddclient:latest
-    container_name: ddclient
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Etc/UTC
-    volumes:
-      - $CONF/ddclient:/config
-    restart: unless-stopped
-
-  asf:
-    image: ghcr.io/justarchinet/archisteamfarm
-    container_name: asf
-    ports:
-      - 1242:1242
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=$TZ
-    volumes:
-      - ${CONF}/asf:/app/config
-    restart: unless-stopped
-
   netdata:
     image: netdata/netdata
     container_name: netdata
-    hostname: 192.168.4.5
+    hostname: 192.168.4.25
+    dns:
+      - 8.8.8.8
     ports:
       - 19999:19999
     cap_add:
@@ -59,6 +24,9 @@ services:
   heimdall:
     image: ghcr.io/linuxserver/heimdall
     container_name: heimdall
+    ports:
+      - 88:80
+      - 450:443
     environment:
       - PUID=1000
       - PGID=1000
@@ -78,6 +46,8 @@ services:
     volumes:
       - ${CONF}/sonarr:/config
       - /mnt/merged/media:/media
+    dns:
+      - 8.8.8.8
     ports:
       - 8989:8989
     restart: unless-stopped
@@ -93,6 +63,8 @@ services:
     volumes:
       - ${CONF}/radarr:/config
       - /mnt/merged/media:/media
+    dns:
+      - 8.8.8.8
     ports:
       - 7878:7878
     restart: unless-stopped
@@ -107,6 +79,8 @@ services:
     volumes:
       - ${CONF}/bazarr:/config
       - /mnt/merged/media:/media
+    dns:
+      - 8.8.8.8
     ports:
       - 6767:6767
     restart: unless-stopped
@@ -128,21 +102,12 @@ services:
       - DOCKER_MODS=linuxserver/mods:swag-auto-reload
     volumes:
       - ${CONF}/swag:/config
+    dns:
+      - 8.8.8.8
     ports:
       - 443:443
       - 80:80 #optional
       - 81:81
-    restart: unless-stopped
-
-  ddclient:
-    image: ghcr.io/linuxserver/ddclient
-    container_name: ddclient
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=$TZ
-    volumes:
-      - ${CONF}/ddclient:/config
     restart: unless-stopped
 
   flaresolverr:
@@ -152,6 +117,8 @@ services:
       - LOG_LEVEL=info
       - LOG_HTML=false
       - CAPTCHA_SOLVER=none
+    dns:
+      - 8.8.8.8
     ports:
       - 8191:8191
     restart: unless-stopped 
@@ -169,8 +136,11 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all #{$GPU}
     volumes:
       - ${CONF}/plex:/config
+      - ${CONF}/xteve:/xteve
       - /mnt/merged/media:/media
       - /mnt/ssd001/temp-transcode:/transcode
+    dns:
+      - 8.8.8.8
     restart: unless-stopped
 
   ombi:
@@ -183,6 +153,8 @@ services:
       - BASE_URL=/ombi #optional
     volumes:
       - ${CONF}/ombi:/config
+    dns:
+      - 8.8.8.8
     ports:
       - 3579:3579
     restart: unless-stopped  
@@ -206,40 +178,8 @@ services:
       - 8920:8920 #optional
       - 7359:7359/udp #optional
 #      - 1900:1900/udp #optional
-    restart: unless-stopped
-
-  pihole:
-    container_name: pihole
-    image: pihole/pihole:latest
-    ports:
-      - 53:53/tcp
-      - 53:53/udp
-#      - "67:67/udp" #disabled to allow unbound to do dns lookups
-      - 80:80/tcp
-    environment:
-      TZ: $TZ
-      WEBPASSWORD: ${PIPASS}
-    shm_size: 8gb
-    volumes:
-      - ${CONF}/pihole/etc-pihole:/etc/pihole
-      - ${CONF}/pihole/etc-dnsmasq.d:/etc/dnsmasq.d
-    networks:
-      vlan:
-        ipv4_address: 192.168.4.2
-    cap_add:
-      - NET_ADMIN # needed for DHCP 
-    restart: unless-stopped
-
-  unbound:
-    container_name: unbound
-    image: mvance/unbound:latest
-    hostname: syn-unbound
-    ports:
-      - 53/tcp
-      - 53/udp
-    networks:
-      vlan:
-        ipv4_address: 192.168.4.6
+    dns:
+      - 8.8.8.8
     restart: unless-stopped
 
   nzbget:
@@ -256,6 +196,8 @@ services:
       - /mnt/ssd001/p2p:/mnt/ssd001/p2p
       - /mnt/merged/media/usenet/.watch:/watched
       - /mnt/merged/Storage:/Storage
+    dns:
+      - 8.8.8.8
     ports:
       - 6789:6789
       - 6791:6791
@@ -325,6 +267,8 @@ services:
       - UMASK_SET=022
     volumes:
       - ${CONF}/jackett:/config
+    dns:
+      - 8.8.8.8
     ports:
       - 9117:9117
 #    network_mode: "service:gluetun"
@@ -344,13 +288,29 @@ services:
       - /mnt/merged/media/torrents:/media/torrents
       - /mnt/merged/Storage:/Storage
       - /mnt/ssd001/p2p:/mnt/ssd001/p2p
+    dns:
+      - 8.8.8.8
     ports:
       - 8112:8112
       - 6881:6881
       - 6881:6881/udp
+#      - 58886:58886 #optional
     restart: unless-stopped
 
-# testing area
+  asf:
+    image: ghcr.io/justarchinet/archisteamfarm
+    container_name: asf
+    ports:
+      - 1242:1242
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=$TZ
+    volumes:
+      - ${CONF}/asf:/app/config
+    dns:
+      - 8.8.8.8
+    restart: unless-stopped
 
   tautulli:
     image: ghcr.io/tautulli/tautulli
@@ -364,6 +324,38 @@ services:
       - TZ=Europe/London
     ports:
       - 8181:8181
+
+  adguard:
+    image: adguard/adguardhome
+    container_name: adguard
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=$TZ
+      - UMASK_SET=022
+    volumes:
+      - ${CONF}/adguard:/config
+    ports:
+      - 53:53/tcp
+      - 53:53/udp
+      - 67:67/tcp
+      - 67:67/udp
+      - 85:80/tcp
+      - 447:443/tcp
+      - 447:443/udp
+      - 3000:3000/tcp
+      - 853:853/tcp
+      - 784:784/udp 
+      - 853:853/udp 
+      - 8853:8853/udp
+      - 5443:5443/tcp
+      - 5443:5443/udp
+    restart: unless-stopped
+
+
+# testing area
+#   to be tested:
+#
 
 # Deprecated / unused services
 #
@@ -397,3 +389,47 @@ services:
 #      - ${CONF}/wetty:/config
 #    restart: unless-stopped
 
+
+# networks - needed so that heimdall and pi-hole can coexist on the same network the virtual lan is only used for pi-hole currently
+
+#networks:
+#  vlan:
+#    name: vlan
+#    driver: macvlan
+#    driver_opts:
+#      parent: enp5s0 #replace with your ethernet interface
+#    enable_ipv6: false
+#    ipam:
+#      config:
+#        - subnet: 192.168.4.0/22 #if your subnet is different, change the values here
+
+#  pihole:
+#    container_name: pihole
+#    image: cbcrowe/pihole-unbound:latest
+#    dns:
+#      - 127.0.0.1
+#    hostname: ${HOSTNAME}
+#    domainname: ${DOMAIN_NAME}
+#    ports:
+##      - 442:443/tcp
+#      - 53:53/tcp
+#      - 53:53/udp
+#      - 85:80/tcp #Allows use of different port to access pihole web interface when other docker containers use port 80
+#      - 5335:5335/tcp # Uncomment to enable unbound access on local server
+#      # - 22/tcp # Uncomment to enable SSH
+#    environment:
+#      - FTLCONF_LOCAL_IPV4=${FTLCONF_LOCAL_IPV4}
+#      - TZ=${TZ:-UTC}
+#      - WEBPASSWORD=${WEBPASSWORD}
+#      - WEBTHEME=${WEBTHEME:-default-light}
+#      - REV_SERVER=${REV_SERVER:-false}
+#      - REV_SERVER_TARGET=${REV_SERVER_TARGET}
+#      - REV_SERVER_DOMAIN=${REV_SERVER_DOMAIN}
+#      - REV_SERVER_CIDR=${REV_SERVER_CIDR}
+#      - PIHOLE_DNS_=127.0.0.1#5335
+#      - DNSSEC="true"
+#      - DNSMASQ_LISTENING=single
+#    volumes:
+#      - ${CONF}/etc_pihole-unbound:/etc/pihole:rw
+#      - ${CONF}/etc_pihole_dnsmasq-unbound:/etc/dnsmasq.d:rw
+#    restart: unless-stopped
