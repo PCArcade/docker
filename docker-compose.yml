@@ -1,12 +1,8 @@
-version: "2.4"
-
 services:
   netdata:
     image: netdata/netdata
     container_name: netdata
     hostname: 192.168.4.25
-    dns:
-      - 8.8.8.8
     ports:
       - 19999:19999
     cap_add:
@@ -46,8 +42,6 @@ services:
     volumes:
       - ${CONF}/sonarr:/config
       - /mnt/merged/media:/media
-    dns:
-      - 8.8.8.8
     ports:
       - 8989:8989
     restart: unless-stopped
@@ -63,8 +57,6 @@ services:
     volumes:
       - ${CONF}/radarr:/config
       - /mnt/merged/media:/media
-    dns:
-      - 8.8.8.8
     ports:
       - 7878:7878
     restart: unless-stopped
@@ -79,8 +71,6 @@ services:
     volumes:
       - ${CONF}/bazarr:/config
       - /mnt/merged/media:/media
-    dns:
-      - 8.8.8.8
     ports:
       - 6767:6767
     restart: unless-stopped
@@ -102,8 +92,6 @@ services:
       - DOCKER_MODS=linuxserver/mods:swag-auto-reload
     volumes:
       - ${CONF}/swag:/config
-    dns:
-      - 8.8.8.8
     ports:
       - 443:443
       - 80:80 #optional
@@ -117,8 +105,6 @@ services:
       - LOG_LEVEL=info
       - LOG_HTML=false
       - CAPTCHA_SOLVER=none
-    dns:
-      - 8.8.8.8
     ports:
       - 8191:8191
     restart: unless-stopped 
@@ -139,8 +125,6 @@ services:
       - ${CONF}/xteve:/xteve
       - /mnt/merged/media:/media
       - /mnt/ssd001/temp-transcode:/transcode
-    dns:
-      - 8.8.8.8
     restart: unless-stopped
 
   ombi:
@@ -153,8 +137,6 @@ services:
       - BASE_URL=/ombi #optional
     volumes:
       - ${CONF}/ombi:/config
-    dns:
-      - 8.8.8.8
     ports:
       - 3579:3579
     restart: unless-stopped  
@@ -172,14 +154,11 @@ services:
     volumes:
       - ${CONF}/jellyfin:/config
       - /mnt/merged/Storage/:/data/movies
-#      - /mnt/merged/media:/media
     ports:
       - 8096:8096
       - 8920:8920 #optional
       - 7359:7359/udp #optional
 #      - 1900:1900/udp #optional
-    dns:
-      - 8.8.8.8
     restart: unless-stopped
 
   nzbget:
@@ -196,88 +175,29 @@ services:
       - /mnt/ssd001/p2p:/mnt/ssd001/p2p
       - /mnt/merged/media/usenet/.watch:/watched
       - /mnt/merged/Storage:/Storage
-    dns:
-      - 8.8.8.8
     ports:
       - 6789:6789
       - 6791:6791
     restart: unless-stopped
 
-  wireguard:
-    image: lscr.io/linuxserver/wireguard
-    container_name: wireguard
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/London
-      - SERVERURL=vpn.pcarcade.co.uk #optional
-      - SERVERPORT=51820 #optional
-      - PEERS=1 #optional
-      - PEERDNS=auto #optional
-      - INTERNAL_SUBNET=10.13.13.0 #optional
-      - ALLOWEDIPS=0.0.0.0/0 #optional
-    volumes:
-      - ${CONF}/wireguard:/config
-      - /lib/modules:/lib/modules
-#    ports:
-#      - 51820:51820/udp
-    sysctls:
-      - net.ipv4.conf.all.src_valid_mark=1
-    network_mode: "service:gluetun"
-    restart: unless-stopped
-
-  gluetun:
-    image: qmcgaw/gluetun
-    container_name: gluetun
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    ports:
-#      - 8888:8888/tcp # HTTP proxy
-#      - 8388:8388/tcp # Shadowsocks
-#      - 8388:8388/udp # Shadowsocks
-#      - 9117:9117 #jackett
-#      - 8112:8112 # deluge
-#      - 6881:6881 # deluge
-#      - 6881:6881/udp #deluge
-      - 51820:51820/udp #wireguard
-    volumes:
-      - ${CONF}/gluetun:/gluetun
-    environment:
-      - VPN_SERVICE_PROVIDER=${VPNPROVIDER}
-      - OPENVPN_USER=${VPNUSER}
-      - OPENVPN_PASSWORD=${VPNPASS}
-      - SERVER_COUNTRIES=${VPNAREA}
-#      - SHADOWSOCKS=on
-#      - FIREWALL_OUTBOUND_SUBNETS=192.168.0.0/24
-
-#services below connect via gluetun vpn
-
   jackett:
     image: ghcr.io/linuxserver/jackett
     container_name: jackett
     environment:
+      - DOCKER_MODS=lscr.io/linuxserver/mods:universal-tshoot
       - PUID=1000
       - PGID=1000
       - TZ=$TZ
       - UMASK_SET=022
     volumes:
       - ${CONF}/jackett:/config
-    dns:
-      - 8.8.8.8
     ports:
       - 9117:9117
-#    network_mode: "service:gluetun"
     restart: unless-stopped
 
   deluge:
     image: ghcr.io/linuxserver/deluge:latest
     container_name: deluge
-#    network_mode: "service:gluetun"
     environment:
       - PUID=1000
       - PGID=1000
@@ -288,13 +208,11 @@ services:
       - /mnt/merged/media/torrents:/media/torrents
       - /mnt/merged/Storage:/Storage
       - /mnt/ssd001/p2p:/mnt/ssd001/p2p
-    dns:
-      - 8.8.8.8
     ports:
       - 8112:8112
       - 6881:6881
       - 6881:6881/udp
-#      - 58886:58886 #optional
+      - 58886:58886 #optional
     restart: unless-stopped
 
   asf:
@@ -308,8 +226,6 @@ services:
       - TZ=$TZ
     volumes:
       - ${CONF}/asf:/app/config
-    dns:
-      - 8.8.8.8
     restart: unless-stopped
 
   tautulli:
@@ -351,85 +267,3 @@ services:
       - 5443:5443/tcp
       - 5443:5443/udp
     restart: unless-stopped
-
-
-# testing area
-#   to be tested:
-#
-
-# Deprecated / unused services
-#
-#  davos:
-#    image: lscr.io/linuxserver/davos
-#    container_name: davos
-#    environment:
-#      - PUID=1000
-#      - PGID=1000
-#    volumes:
-#      - ${CONF}/davos:/config
-#      - /mnt/merged/Storage/Downloads:/download
-#    ports:
-#      - 8080:8080
-#    restart: unless-stopped
-#
-#  wetty:
-#    image: wettyoss/wetty
-#    container_name: wetty
-#    working_dir: /usr/src/app
-#    ports:
-#      - '3000:3000'
-#    environment:
-#      SSHHOST: '192.168.4.5'
-#      SSHPORT: 22
-#      NODE_ENV: 'development'
-#      BASE: '/'
-#      SSLKEY: /config/key.pem  
-#      SSLCERT: /config/cert.pem
-#    volumes:
-#      - ${CONF}/wetty:/config
-#    restart: unless-stopped
-
-
-# networks - needed so that heimdall and pi-hole can coexist on the same network the virtual lan is only used for pi-hole currently
-
-#networks:
-#  vlan:
-#    name: vlan
-#    driver: macvlan
-#    driver_opts:
-#      parent: enp5s0 #replace with your ethernet interface
-#    enable_ipv6: false
-#    ipam:
-#      config:
-#        - subnet: 192.168.4.0/22 #if your subnet is different, change the values here
-
-#  pihole:
-#    container_name: pihole
-#    image: cbcrowe/pihole-unbound:latest
-#    dns:
-#      - 127.0.0.1
-#    hostname: ${HOSTNAME}
-#    domainname: ${DOMAIN_NAME}
-#    ports:
-##      - 442:443/tcp
-#      - 53:53/tcp
-#      - 53:53/udp
-#      - 85:80/tcp #Allows use of different port to access pihole web interface when other docker containers use port 80
-#      - 5335:5335/tcp # Uncomment to enable unbound access on local server
-#      # - 22/tcp # Uncomment to enable SSH
-#    environment:
-#      - FTLCONF_LOCAL_IPV4=${FTLCONF_LOCAL_IPV4}
-#      - TZ=${TZ:-UTC}
-#      - WEBPASSWORD=${WEBPASSWORD}
-#      - WEBTHEME=${WEBTHEME:-default-light}
-#      - REV_SERVER=${REV_SERVER:-false}
-#      - REV_SERVER_TARGET=${REV_SERVER_TARGET}
-#      - REV_SERVER_DOMAIN=${REV_SERVER_DOMAIN}
-#      - REV_SERVER_CIDR=${REV_SERVER_CIDR}
-#      - PIHOLE_DNS_=127.0.0.1#5335
-#      - DNSSEC="true"
-#      - DNSMASQ_LISTENING=single
-#    volumes:
-#      - ${CONF}/etc_pihole-unbound:/etc/pihole:rw
-#      - ${CONF}/etc_pihole_dnsmasq-unbound:/etc/dnsmasq.d:rw
-#    restart: unless-stopped
