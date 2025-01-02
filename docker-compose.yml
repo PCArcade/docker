@@ -62,10 +62,23 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/London
+      - TZ=$TZ
     volumes:
       - ${CONF}/bazarr:/config
       - /mnt/merged/media:/media
+    restart: unless-stopped
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=$TZ
+    volumes:
+      - ${CONF}/prowlarr:/config
+#    ports:
+#      - 9696:9696
     restart: unless-stopped
 
   swag:
@@ -148,19 +161,6 @@ services:
       - /mnt/ssd001/p2p:/mnt/ssd001/p2p
       - /mnt/merged/media/usenet/.watch:/watched
       - /mnt/merged/Storage:/Storage
-    restart: unless-stopped
-
-  jackett:
-    image: ghcr.io/linuxserver/jackett
-    container_name: jackett
-    environment:
-      - DOCKER_MODS=lscr.io/linuxserver/mods:universal-tshoot
-      - PUID=1000
-      - PGID=1000
-      - TZ=$TZ
-      - UMASK_SET=022
-    volumes:
-      - ${CONF}/jackett:/config
     restart: unless-stopped
 
   deluge:
