@@ -1,31 +1,30 @@
 services:
+
   netdata:
     image: netdata/netdata
     container_name: netdata
     hostname: 192.168.4.25
-    ports:
-      - 19999:19999
     cap_add:
       - SYS_PTRACE
     security_opt:
       - apparmor:unconfined
     environment:
+      - PUID=1000
+      - GUID=1000
+      - TZ=$TZ
       - DOCKER_HOST=http://localhost:2375
     volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${CONF}/netdata/proc:/host/proc:ro
+      - ${CONF}/netdata/sys:/host/sys:ro
+      - ${CONF}/netdata/var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
 
   heimdall:
     image: ghcr.io/linuxserver/heimdall
     container_name: heimdall
-    ports:
-      - 88:80
-      - 450:443
     environment:
       - PUID=1000
-      - PGID=1000
+      - GUID=1000
       - TZ=$TZ
     volumes:
       - ${CONF}/heimdall:/config
@@ -42,8 +41,6 @@ services:
     volumes:
       - ${CONF}/sonarr:/config
       - /mnt/merged/media:/media
-    ports:
-      - 8989:8989
     restart: unless-stopped
 
   radarr:
@@ -57,8 +54,6 @@ services:
     volumes:
       - ${CONF}/radarr:/config
       - /mnt/merged/media:/media
-    ports:
-      - 7878:7878
     restart: unless-stopped
 
   bazarr:
@@ -71,8 +66,6 @@ services:
     volumes:
       - ${CONF}/bazarr:/config
       - /mnt/merged/media:/media
-    ports:
-      - 6767:6767
     restart: unless-stopped
 
   swag:
@@ -94,7 +87,6 @@ services:
       - ${CONF}/swag:/config
     ports:
       - 443:443
-      - 80:80 #optional
       - 81:81
     restart: unless-stopped
 
@@ -102,11 +94,12 @@ services:
     image: ghcr.io/flaresolverr/flaresolverr:latest
     container_name: flaresolverr
     environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=$TZ
       - LOG_LEVEL=info
       - LOG_HTML=false
       - CAPTCHA_SOLVER=none
-    ports:
-      - 8191:8191
     restart: unless-stopped 
 
   plex:
@@ -122,7 +115,6 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all #{$GPU}
     volumes:
       - ${CONF}/plex:/config
-      - ${CONF}/xteve:/xteve
       - /mnt/merged/media:/media
       - /mnt/ssd001/temp-transcode:/transcode
     restart: unless-stopped
@@ -133,12 +125,10 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/London
+      - TZ=$TZ
       - BASE_URL=/ombi #optional
     volumes:
       - ${CONF}/ombi:/config
-    ports:
-      - 3579:3579
     restart: unless-stopped  
 
   jellyfin:
@@ -154,11 +144,6 @@ services:
     volumes:
       - ${CONF}/jellyfin:/config
       - /mnt/merged/Storage/:/data/movies
-    ports:
-      - 8096:8096
-      - 8920:8920 #optional
-      - 7359:7359/udp #optional
-#      - 1900:1900/udp #optional
     restart: unless-stopped
 
   nzbget:
@@ -175,9 +160,6 @@ services:
       - /mnt/ssd001/p2p:/mnt/ssd001/p2p
       - /mnt/merged/media/usenet/.watch:/watched
       - /mnt/merged/Storage:/Storage
-    ports:
-      - 6789:6789
-      - 6791:6791
     restart: unless-stopped
 
   jackett:
@@ -191,8 +173,6 @@ services:
       - UMASK_SET=022
     volumes:
       - ${CONF}/jackett:/config
-    ports:
-      - 9117:9117
     restart: unless-stopped
 
   deluge:
@@ -208,18 +188,11 @@ services:
       - /mnt/merged/media/torrents:/media/torrents
       - /mnt/merged/Storage:/Storage
       - /mnt/ssd001/p2p:/mnt/ssd001/p2p
-    ports:
-      - 8112:8112
-      - 6881:6881
-      - 6881:6881/udp
-      - 58886:58886 #optional
     restart: unless-stopped
 
-  asf:
+  archisteamfarm:
     image: ghcr.io/justarchinet/archisteamfarm
-    container_name: asf
-    ports:
-      - 1242:1242
+    container_name: archisteamfarm
     environment:
       - PUID=1000
       - PGID=1000
@@ -231,39 +204,32 @@ services:
   tautulli:
     image: ghcr.io/tautulli/tautulli
     container_name: tautulli
-    restart: unless-stopped
     volumes:
       - ${CONF}/tautulli:/config
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Europe/London
-    ports:
-      - 8181:8181
+      - TZ=$TZ
+    restart: unless-stopped
 
-  adguard:
-    image: adguard/adguardhome
-    container_name: adguard
+  overseerr:
+    image: lscr.io/linuxserver/overseerr:latest
+    container_name: overseerr
     environment:
       - PUID=1000
       - PGID=1000
       - TZ=$TZ
-      - UMASK_SET=022
     volumes:
-      - ${CONF}/adguard:/config
-    ports:
-      - 53:53/tcp
-      - 53:53/udp
-      - 67:67/tcp
-      - 67:67/udp
-      - 85:80/tcp
-      - 447:443/tcp
-      - 447:443/udp
-      - 3000:3000/tcp
-      - 853:853/tcp
-      - 784:784/udp 
-      - 853:853/udp 
-      - 8853:8853/udp
-      - 5443:5443/tcp
-      - 5443:5443/udp
+      - ${CONF}/overseer:/config
+    restart: unless-stopped
+
+  maintainerr:
+    image: ghcr.io/jorenn92/maintainerr:latest
+    container_name: maintainerr
+    user: 1000:1000
+    environment:
+      - TZ=$TZ
+#     - DEBUG=true # uncomment (remove the hashtag) to enable debug logs
+    volumes:
+      - ${CONF}/maintainerr/opt/data:/config
     restart: unless-stopped
