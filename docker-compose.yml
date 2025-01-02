@@ -82,12 +82,12 @@ services:
       - VALIDATION=dns
       - DNSPLUGIN=${DNS}
       - MAXMINDDB_LICENSE_KEY=${MAXMIND}
+      - EMAIL=${EMAIL}
       - DOCKER_MODS=linuxserver/mods:swag-auto-reload
     volumes:
       - ${CONF}/swag:/config
     ports:
       - 443:443
-      - 81:81
     restart: unless-stopped
 
   flaresolverr:
