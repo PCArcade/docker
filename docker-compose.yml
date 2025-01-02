@@ -117,19 +117,7 @@ services:
       - ${CONF}/plex:/config
       - /mnt/merged/media:/media
       - /mnt/ssd001/temp-transcode:/transcode
-    restart: unless-stopped
-
-  ombi:
-    image: lscr.io/linuxserver/ombi:latest
-    container_name: ombi
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=$TZ
-      - BASE_URL=/ombi #optional
-    volumes:
-      - ${CONF}/ombi:/config
-    restart: unless-stopped  
+    restart: unless-stopped 
 
   jellyfin:
     runtime: nvidia
