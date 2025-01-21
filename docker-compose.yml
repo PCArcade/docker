@@ -130,20 +130,6 @@ services:
       - /mnt/ssd001/temp-transcode:/transcode
     restart: unless-stopped 
 
-#  jellyfin:
-#    runtime: nvidia
-#    image: lscr.io/linuxserver/jellyfin
-#    container_name: jellyfin
-#    environment:
-#      - PUID=1000
-#      - PGID=1000
-#      - TZ=$TZ
-#      - NVIDIA_VISIBLE_DEVICES=all #{$GPU}
-#    volumes:
-#      - ${CONF}/jellyfin:/config
-#      - /mnt/merged/Storage/:/data/movies
-#    restart: unless-stopped
-
   nzbget:
     image: ghcr.io/linuxserver/nzbget
     container_name: nzbget
