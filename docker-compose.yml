@@ -129,6 +129,27 @@ services:
       - /mnt/ssd001/temp-transcode:/transcode
     restart: unless-stopped 
 
+
+
+  jellyfin:
+    image: jellyfin/jellyfin
+    container_name: jellyfin
+    user: 1000:1000
+#    network_mode: 'host'
+    volumes:
+      - ${CONF}/jellyfin:/config
+      - /mnt/merged/media:/media
+      - /mnt/ssd001/temp-transcode:/transcode
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: 'unless-stopped'
+
   nzbget:
     image: ghcr.io/linuxserver/nzbget
     container_name: nzbget
@@ -144,17 +165,17 @@ services:
       - /mnt/merged/Storage:/Storage
     restart: unless-stopped
 
-  deluge:
-    image: ghcr.io/linuxserver/deluge:2.1.1-libtorrentv1
-    container_name: deluge
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
     environment:
       - PUID=1000
       - PGID=1000
       - TZ=$TZ
-      - DELUGE_LOGLEVEL=error #optional
-      - DOCKER_MODS=ghcr.io/themepark-dev/theme.park:deluge
+      - WEBUI_PORT=8080
+      - TORRENTING_PORT=6881
     volumes:
-      - ${CONF}/deluge:/config
+      - ${CONF}/qbittorrent:/config
       - /mnt/merged/media/torrents:/media/torrents
       - /mnt/merged/Storage:/Storage
       - /mnt/ssd001/p2p:/mnt/ssd001/p2p
@@ -162,13 +183,15 @@ services:
 
   archisteamfarm:
     image: ghcr.io/justarchinet/archisteamfarm
-    container_name: archisteamfarm
+    container_name: asf
     environment:
       - PUID=1000
       - PGID=1000
       - TZ=$TZ
     volumes:
       - ${CONF}/asf:/app/config
+    ports:
+      - 1242:1242
     restart: unless-stopped
 
   tautulli:
@@ -209,6 +232,7 @@ services:
     container_name: unpackerr
     volumes:
       - /mnt/merged/media:/media
+      - ${CONF}/unpackerr:/config
     restart: unless-stopped
     user: 1000:1000
     environment:
@@ -219,7 +243,7 @@ services:
     - UN_ERROR_STDERR=false
     - UN_ACTIVITY=false
     - UN_LOG_QUEUES=1m
-    - UN_LOG_FILE=${CONF}/unpackerr
+    - UN_LOG_FILE=/config/unpackerr
     - UN_LOG_FILES=10
     - UN_LOG_FILE_MB=10
     - UN_INTERVAL=2m
@@ -261,10 +285,52 @@ services:
     - UN_RADARR_0_DELETE_ORIG=false
     - UN_RADARR_0_SYNCTHING=false
 
-  whatsupdocker:
-    image: getwud/wud
-    container_name: wud
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    ports:
-      - 3000:3000
+    command: --schedule "0 3 * * * *"
+
+  stash:
+    image: stashapp/stash:latest
+    container_name: stash
+    restart: unless-stopped
+    ## the container's port must be the same with the STASH_PORT in the environment section
+#    ports:
+#      - "9999:9999"
+    ## If you intend to use stash's DLNA functionality uncomment the below network mode and comment out the above ports section
+#    network_mode: host
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "10"
+        max-size: "2m"
+    environment:
+      - PUID=1000
+      - GUID=1000
+      - STASH_STASH=/data/
+      - STASH_GENERATED=/generated/
+      - STASH_METADATA=/metadata/
+      - STASH_CACHE=/cache/
+      ## Adjust below to change default port (9999)
+#      - STASH_PORT=9999
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      ## Adjust below paths (the left part) to your liking.
+      ## E.g. you can change ./config:/root/.stash to ./stash:/root/.stash
+      ## The left part is the path on your host, the right part is the path in the stash container.
+
+      ## Keep configs, scrapers, and plugins here.
+      - ${CONF}/stash:/root/.stash
+      ## Point this at your collection.
+      ## The left side is where your collection is on your host, the right side is where it will be in stash.
+      - /mnt/merged/Storage/Jellyfin:/data
+      ## This is where your stash's metadata lives
+      - ${CONF}/metadata:/metadata
+      ## Any other cache content.
+      - ${CONF}/cache:/cache
+      ## Where to store binary blob data (scene covers, images)
+      - ${CONF}/blobs:/blobs
+      ## Where to store generated content (screenshots,previews,transcodes,sprites)
+      - ${CONF}/generated:/generated
