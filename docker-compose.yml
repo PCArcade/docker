@@ -1,33 +1,4 @@
 services:
-  netdata:
-    image: netdata/netdata
-    container_name: netdata
-    hostname: 192.168.4.25
-    cap_add:
-      - SYS_PTRACE
-    security_opt:
-      - apparmor:unconfined
-    environment:
-      - PUID=1000
-      - GUID=1000
-      - TZ=$TZ
-      - DOCKER_HOST=http://localhost:2375
-    volumes:
-      - ${CONF}/netdata/proc:/host/proc:ro
-      - ${CONF}/netdata/sys:/host/sys:ro
-      - ${CONF}/netdata/var/run/docker.sock:/var/run/docker.sock:ro
-    restart: unless-stopped
-
-  heimdall:
-    image: ghcr.io/linuxserver/heimdall
-    container_name: heimdall
-    environment:
-      - PUID=1000
-      - GUID=1000
-      - TZ=$TZ
-    volumes:
-      - ${CONF}/heimdall:/config
-    restart: unless-stopped
 
   sonarr:
     image: ghcr.io/linuxserver/sonarr
@@ -113,7 +84,7 @@ services:
     restart: unless-stopped 
 
   plex:
-    runtime: nvidia
+  #  runtime: nvidia
     image: lscr.io/linuxserver/plex:latest
     container_name: plex
     network_mode: host
@@ -122,33 +93,12 @@ services:
       - PGID=1000
       - VERSION=docker
       - PLEX_CLAIM=${PLEX_CLAIM}
-      - NVIDIA_VISIBLE_DEVICES=all
+  #    - NVIDIA_VISIBLE_DEVICES=all
     volumes:
       - ${CONF}/plex:/config
       - /mnt/merged/media:/media
       - /mnt/ssd001/temp-transcode:/transcode
     restart: unless-stopped 
-
-
-
-  jellyfin:
-    image: jellyfin/jellyfin
-    container_name: jellyfin
-    user: 1000:1000
-#    network_mode: 'host'
-    volumes:
-      - ${CONF}/jellyfin:/config
-      - /mnt/merged/media:/media
-      - /mnt/ssd001/temp-transcode:/transcode
-    runtime: nvidia
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    restart: 'unless-stopped'
 
   nzbget:
     image: ghcr.io/linuxserver/nzbget
@@ -291,46 +241,3 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --schedule "0 3 * * * *"
-
-  stash:
-    image: stashapp/stash:latest
-    container_name: stash
-    restart: unless-stopped
-    ## the container's port must be the same with the STASH_PORT in the environment section
-#    ports:
-#      - "9999:9999"
-    ## If you intend to use stash's DLNA functionality uncomment the below network mode and comment out the above ports section
-#    network_mode: host
-    logging:
-      driver: "json-file"
-      options:
-        max-file: "10"
-        max-size: "2m"
-    environment:
-      - PUID=1000
-      - GUID=1000
-      - STASH_STASH=/data/
-      - STASH_GENERATED=/generated/
-      - STASH_METADATA=/metadata/
-      - STASH_CACHE=/cache/
-      ## Adjust below to change default port (9999)
-#      - STASH_PORT=9999
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      ## Adjust below paths (the left part) to your liking.
-      ## E.g. you can change ./config:/root/.stash to ./stash:/root/.stash
-      ## The left part is the path on your host, the right part is the path in the stash container.
-
-      ## Keep configs, scrapers, and plugins here.
-      - ${CONF}/stash:/root/.stash
-      ## Point this at your collection.
-      ## The left side is where your collection is on your host, the right side is where it will be in stash.
-      - /mnt/merged/Storage/Jellyfin:/data
-      ## This is where your stash's metadata lives
-      - ${CONF}/metadata:/metadata
-      ## Any other cache content.
-      - ${CONF}/cache:/cache
-      ## Where to store binary blob data (scene covers, images)
-      - ${CONF}/blobs:/blobs
-      ## Where to store generated content (screenshots,previews,transcodes,sprites)
-      - ${CONF}/generated:/generated
