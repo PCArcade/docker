@@ -66,7 +66,7 @@ services:
     restart: ${RESTART_POLICY}
 
   plex:
-    runtime: nvidia
+  #  runtime: nvidia
     image: lscr.io/linuxserver/plex:latest
     container_name: plex
     network_mode: host
@@ -126,6 +126,8 @@ services:
     ports:
       - "127.0.0.1:1242:1242"
 #      - "[::1]:1242:1242"
+    healthcheck:
+      disable: true
     restart: ${RESTART_POLICY}
 
   tautulli:
@@ -137,6 +139,8 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
+    healthcheck:
+      disable: true
     restart: ${RESTART_POLICY}
 
   seerr:
@@ -226,17 +230,17 @@ services:
       - UN_RADARR_0_DELETE_ORIG=false
       - UN_RADARR_0_SYNCTHING=false
 
-  homeassistant:
-    image: lscr.io/linuxserver/homeassistant:latest
-    container_name: homeassistant
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-    volumes:
-      - ${CONF}/homeassistant:/config
-    ports:
-      - 8123:8123 #optional
-#    devices:
-#      - /path/to/device:/path/to/device #optional
-    restart: ${RESTART_POLICY}
+#  homeassistant:
+#    image: lscr.io/linuxserver/homeassistant:latest
+#    container_name: homeassistant
+#    environment:
+#      - PUID=${PUID}
+#      - PGID=${PGID}
+#      - TZ=${TZ}
+#    volumes:
+#      - ${CONF}/homeassistant:/config
+#    ports:
+#      - 8123:8123 #optional
+##    devices:
+##      - /path/to/device:/path/to/device #optional
+#    restart: ${RESTART_POLICY}
