@@ -6,6 +6,7 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
+      - UMASK=022
     volumes:
       - ${CONF}/sonarr:/config
       - ${MEDIA}:/media
@@ -18,6 +19,7 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
+      - UMASK=022
     volumes:
       - ${CONF}/radarr:/config
       - ${MEDIA}:/media
@@ -66,21 +68,45 @@ services:
     restart: ${RESTART_POLICY}
 
   plex:
-  #  runtime: nvidia
     image: lscr.io/linuxserver/plex:latest
     container_name: plex
     network_mode: host
+    shm_size: '20gb'
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - VERSION=docker
       - PLEX_CLAIM=${PLEX_CLAIM}
-      - NVIDIA_VISIBLE_DEVICES=all
+    devices:
+      - /dev/dri/:dev/dri/
     volumes:
       - ${CONF}/plex:/config
       - ${MEDIA}:/media
       - ${TRANSCODE}:/transcode
     restart: ${RESTART_POLICY}
+
+#  plex:
+#    image: lscr.io/linuxserver/plex:latest
+#    container_name: plex
+#    network_mode: host
+#    environment:
+#      - PUID=${PUID}
+#      - PGID=${PGID}
+#      - VERSION=docker
+#      - PLEX_CLAIM=${PLEX_CLAIM}
+#      - LIBVA_DRIVER_NAME=iHD
+#    volumes:
+#      - ${CONF}/plex:/config
+#      - ${MEDIA}:/media
+#      - ${TRANSCODE}:/transcode
+#      # INJECT THE WORKING SYSTEM INTEL DRIVERS NATIVELY:
+##      - /usr/lib/x86_64-linux-gnu/dri:/usr/lib/x86_64-linux-gnu/dri:ro
+#      - /usr/lib/x86_64-linux-gnu/libigdgmm.so.12:/usr/lib/x86_64-linux-gnu/libigdgmm.so.12:ro
+#    devices:
+#      - /dev/dri:/dev/dri #expose all GPU transcoders
+#    group_add:
+#      - "992"
+#    restart: ${RESTART_POLICY}
 
   nzbget:
     image: ghcr.io/linuxserver/nzbget
@@ -89,6 +115,8 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
+      - UMASK=022
+
     volumes:
       - ${CONF}/nzbget:/config
       - ${MEDIA}/usenet:/media/usenet
@@ -106,6 +134,7 @@ services:
       - TZ=${TZ}
       - WEBUI_PORT=8080
       - TORRENTING_PORT=6881
+      - UMASK=022
     volumes:
       - ${CONF}/qbittorrent:/config
       - ${MEDIA}/torrents:/media/torrents
@@ -160,7 +189,7 @@ services:
     restart: ${RESTART_POLICY}
 
   maintainerr:
-    image: ghcr.io/maintainerr/maintainerr:latest
+    image: ghcr.io/maintainerr/maintainerr:development
     container_name: maintainerr
     user: ${PUID}:${PGID}
     environment:
@@ -181,6 +210,7 @@ services:
     restart: ${RESTART_POLICY}
     user: ${PUID}:${PGID}
     environment:
+      - UMASK=022
       - TZ=${TZ}
       ## Global Settings
       - UN_DEBUG=false
