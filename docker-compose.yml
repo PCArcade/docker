@@ -58,55 +58,24 @@ services:
       - 443:443
     restart: ${RESTART_POLICY}
 
-  flaresolverr:
-    image: ghcr.io/flaresolverr/flaresolverr:latest
-    container_name: flaresolverr
-    ports:
-      - "8191:8191"
-    environment:
-      - LOG_LEVEL=info
-    restart: ${RESTART_POLICY}
-
   plex:
     image: lscr.io/linuxserver/plex:latest
     container_name: plex
     network_mode: host
-    shm_size: '20gb'
+    hostname: PCAPlex
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - VERSION=docker
       - PLEX_CLAIM=${PLEX_CLAIM}
     devices:
-      - /dev/dri/:dev/dri/
+      - /dev/dri:/dev/dri   # Fixed minor typo inside original device mapping
     volumes:
       - ${CONF}/plex:/config
       - ${MEDIA}:/media
-      - ${TRANSCODE}:/transcode
+    tmpfs:
+      - /transcode:size=24G,mode=1777,uid=${PUID},gid=${PGID}
     restart: ${RESTART_POLICY}
-
-#  plex:
-#    image: lscr.io/linuxserver/plex:latest
-#    container_name: plex
-#    network_mode: host
-#    environment:
-#      - PUID=${PUID}
-#      - PGID=${PGID}
-#      - VERSION=docker
-#      - PLEX_CLAIM=${PLEX_CLAIM}
-#      - LIBVA_DRIVER_NAME=iHD
-#    volumes:
-#      - ${CONF}/plex:/config
-#      - ${MEDIA}:/media
-#      - ${TRANSCODE}:/transcode
-#      # INJECT THE WORKING SYSTEM INTEL DRIVERS NATIVELY:
-##      - /usr/lib/x86_64-linux-gnu/dri:/usr/lib/x86_64-linux-gnu/dri:ro
-#      - /usr/lib/x86_64-linux-gnu/libigdgmm.so.12:/usr/lib/x86_64-linux-gnu/libigdgmm.so.12:ro
-#    devices:
-#      - /dev/dri:/dev/dri #expose all GPU transcoders
-#    group_add:
-#      - "992"
-#    restart: ${RESTART_POLICY}
 
   nzbget:
     image: ghcr.io/linuxserver/nzbget
@@ -116,7 +85,6 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
       - UMASK=022
-
     volumes:
       - ${CONF}/nzbget:/config
       - ${MEDIA}/usenet:/media/usenet
@@ -152,9 +120,6 @@ services:
     volumes:
       - ${CONF}/asf:/app/config
       - ${CONF}/asf/plugins:/app/plugins
-    ports:
-      - "127.0.0.1:1242:1242"
-#      - "[::1]:1242:1242"
     healthcheck:
       disable: true
     restart: ${RESTART_POLICY}
@@ -182,14 +147,12 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - PORT=5090 #optional
-    ports:
-      - 5090:5090
     volumes:
       - ${CONF}/seerr:/app/config
     restart: ${RESTART_POLICY}
 
   maintainerr:
-    image: ghcr.io/maintainerr/maintainerr:development
+    image: ghcr.io/maintainerr/maintainerr:latest
     container_name: maintainerr
     user: ${PUID}:${PGID}
     environment:
@@ -260,17 +223,15 @@ services:
       - UN_RADARR_0_DELETE_ORIG=false
       - UN_RADARR_0_SYNCTHING=false
 
-#  homeassistant:
-#    image: lscr.io/linuxserver/homeassistant:latest
-#    container_name: homeassistant
-#    environment:
-#      - PUID=${PUID}
-#      - PGID=${PGID}
-#      - TZ=${TZ}
-#    volumes:
-#      - ${CONF}/homeassistant:/config
-#    ports:
-#      - 8123:8123 #optional
-##    devices:
-##      - /path/to/device:/path/to/device #optional
-#    restart: ${RESTART_POLICY}
+  dockhand:
+    image: fnsys/dockhand:latest
+    container_name: dockhand
+    restart: unless-stopped
+    group_add:
+      - "989"  # Replace with your host's Docker GID
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/pcarcade/.config/dockhand:/app/data
+
+volumes:
+  dockhand_data:
