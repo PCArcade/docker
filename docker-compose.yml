@@ -1,4 +1,46 @@
 services:
+
+  gluetun:
+    image: qmcgaw/gluetun
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - VPN_SERVICE_PROVIDER=protonvpn
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=${VPN}
+      - WIREGUARD_ADDRESSES=10.2.0.2/32
+      - SERVER_CITIES=New York
+      - FIREWALL_OUTBOUND_SUBNETS=192.168.4.0/24
+      - VPN_PORT_FORWARDING=on
+      - PORT_FORWARD_ONLY=on
+      - VPN_PORT_FORWARDING_UP_COMMAND=/bin/sh -c 'for i in 1 2 3 4 5 6 7 8 9 10; do wget -qO- --post-data="json={\"listen_port\":{{PORTS}},\"random_port\":false,\"upnp\":false}" http://127.0.0.1:8080/api/v2/app/setPreferences && exit 0; sleep 3; done; exit 1'
+      - VPN_PORT_FORWARDING_DOWN_COMMAND=/bin/sh -c 'wget -qO- --post-data="json={\"listen_port\":0}" http://127.0.0.1:8080/api/v2/app/setPreferences'
+    ports:
+      - 8080:8080
+    restart: ${RESTART_POLICY}
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:libtorrentv1
+    container_name: qbittorrent
+    healthcheck:
+      disable: true
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - WEBUI_PORT=8080
+      - UMASK=022
+    network_mode: "service:gluetun"
+    volumes:
+      - ${CONF}/qbittorrent:/config
+      - ${MEDIA}/torrents:/media/torrents
+      - /mnt/merged/Storage:/Storage
+      - ${P2P}:/mnt/merged/temp
+    restart: ${RESTART_POLICY}
+
   sonarr:
     image: ghcr.io/linuxserver/sonarr
     container_name: sonarr
@@ -59,7 +101,7 @@ services:
     restart: ${RESTART_POLICY}
 
   plex:
-#    image: lscr.io/linuxserver/plex:version-1.43.1.10576-06378bdcd
+#    image: lscr.io/linuxserver/plex:version-1.43.1.10576-06378bdcd - KNOWN GOOD
     image: lscr.io/linuxserver/plex:latest
     container_name: plex
     network_mode: host
@@ -83,32 +125,33 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
-      - JELLYFIN_PublishedServerUrl=http://192.168.4.50:8096 #optional
       - DOCKER_MODS=linuxserver/mods:jellyfin-opencl-intel
+      - JELLYFIN_Logging__LogLevel__Default=Error
     volumes:
       - ${CONF}/jellyfin:/config #/path/to/jellyfin/library:/config
       - ${MEDIA}/library/TV:/data/TV
       - ${MEDIA}/library/Movies:/data/Movies
+      - ${MEDIA}/library/Music:/data/Music
       - ${TRANSCODE}:/transcode
 #    tmpfs:
 #      - /transcode:size=8G
     devices:
       - /dev/dri/renderD128:/dev/dri/renderD128
-#    ports:
-#      - 8096:8096
-#      - 8920:8920 #optional
-#      - 7359:7359/udp #optional
-#      - 1900:1900/udp #optional
     restart: unless-stopped
 
   jellyplex-watched:
     image: luigi311/jellyplex-watched:latest
     container_name: jellyplex-watched
     restart: unless-stopped
+    depends_on:
+      - jellyfin
     environment:
       - PUID=1000
       - PGID=1000
-    env_file: "./.jellyplex"
+      - YAML_FILE=/app/config/config.yaml
+      - JPW_SERVER_TOKENS={"plex-main":"${JPW_PLEX_TOKEN}","jellyfin-main":"${JPW_JELLYFIN_TOKEN}"}
+    volumes:
+      - ./config.yaml:/app/config/config.yaml:ro
 
   nzbget:
     image: lscr.io/linuxserver/nzbget:latest
@@ -123,29 +166,6 @@ services:
       - ${MEDIA}/usenet:/media/usenet
       - ${P2P}:/mnt/merged/temp
       - ${STORAGE}:/Storage
-    restart: ${RESTART_POLICY}
-
-  qbittorrent:
-    image: lscr.io/linuxserver/qbittorrent:libtorrentv1
-    container_name: qbittorrent
-    healthcheck:
-      disable: true
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-      - WEBUI_PORT=8080
-      - TORRENTING_PORT=49200
-      - UMASK=022
-    ports:
-      # DO NOT map 8080 here. SWAG handles 8080 via your Docker network.
-      - "49200:49200/tcp"  # Bypasses SWAG, maps directly to Debian for torrents
-      - "49200:49200/udp"  # Bypasses SWAG, maps directly to Debian for torrents  
-    volumes:
-      - ${CONF}/qbittorrent:/config
-      - ${MEDIA}/torrents:/media/torrents
-      - /mnt/merged/Storage:/Storage
-      - ${P2P}:/mnt/merged/temp
     restart: ${RESTART_POLICY}
 
   archisteamfarm:
@@ -284,6 +304,11 @@ services:
     image: fnsys/dockhand:latest
     container_name: dockhand
     restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=022
+      - TZ=Etc/UTC
     group_add:
       - "989"  # Replace with your host's Docker GID
     volumes:
@@ -297,8 +322,12 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${CONF}/arcane-data:/app/data
     environment:
-      - ENCRYPTION_KEY=9t+TKgiX+vvkCDUEuTE6rYCHwk2jYHL6lJ7WxfSF0fk=
+#      - OIDC_ENABLED=false
+      - ARCANE_ENCRYPTION_KEY=9t+TKgiX+vvkCDUEuTE6rYCHwk2jYHL6lJ7WxfSF0fk=
       - TZ=UTC
+      - PUID=1000
+      - PGID=1000
+      - UMASK=022
     cgroup: host
     restart: unless-stopped
 
@@ -316,7 +345,6 @@ services:
       timeout: 5s
       retries: 2
       start_period: 10s
-
 
   oauth2-proxy:
     image: quay.io/oauth2-proxy/oauth2-proxy:latest
@@ -345,6 +373,9 @@ services:
   transmute:
     image: ghcr.io/transmute-app/transmute:latest
     container_name: transmute
+    environment:
+      - PUID=1000
+      - PGID=1000
     restart: unless-stopped
     volumes:
       - ${CONF}/transmute:/app/data
@@ -367,4 +398,5 @@ services:
 volumes:
   dockhand_data:
   transmute_data:
+  dispatcharr_data:
 
